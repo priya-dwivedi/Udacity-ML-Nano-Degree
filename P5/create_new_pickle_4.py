@@ -10,11 +10,12 @@ import glob
 from scipy import ndimage
 import numpy as np
 import os
+from PIL import Image
 
+# Change directory to where training images are stored
 os.chdir(r"/Users/priyankadwivedi/Documents/Kaggle/CatvsDogs/train")
 
-from PIL import Image
-#Take all images for cats and dogs and convert to grayscale and resize to 56,56
+#Take all images for cats and dogs and resize to 56,56
 size = 56, 56
 for infile in glob.glob("/Users/priyankadwivedi/Documents/Kaggle/CatvsDogs/train/*.jpg"):
     outfile = os.path.splitext(infile)[0] + ".small"    
@@ -24,13 +25,13 @@ for infile in glob.glob("/Users/priyankadwivedi/Documents/Kaggle/CatvsDogs/train
     out.save(outfile, "JPEG")
 
 
-#Display reduced gray scale images
-os.chdir(r"/Users/priyankadwivedi/Documents/Kaggle/CatvsDogs/train")
+# Display reduced images 
 im = Image.open("cat.250.small")
 print im.format, im.size, im.mode
 im.show()
 
-
+# Use Scipy to create a dataset with image data flattened to grayscale and a dataset for with labels
+# Flatten = True to create grayscale images 
 image_size = 56
 pixel_depth = 255
 image_files = 25000
@@ -53,7 +54,8 @@ for filename in glob.glob("/Users/priyankadwivedi/Documents/Kaggle/CatvsDogs/tra
       num_images = num_images + 1
   except IOError as e:
       print('Could not read:', filename, ':', e, '- it\'s ok, skipping.')
-
+      
+# Check Stats on the dataset
 print('Dataset shape:', dataset.shape)
 print('Target shape:', target.shape)
 print('Dataset Mean:', np.mean(dataset))
@@ -82,7 +84,7 @@ all_dataset, all_labels, test_size=0.2, random_state=2225)
 print("train dataset", X_train.shape, y_train.shape)
 print("Validation dataset", X_valid.shape, y_valid.shape)
 
-#Split training again into test dataset
+#Split validation dataset of 5k images into a validation dataset and test dataset
 from sklearn import cross_validation 
 X_valid, X_test, y_valid, y_test = cross_validation.train_test_split(
 X_valid, y_valid, test_size=0.2, random_state=3879)
@@ -90,8 +92,7 @@ X_valid, y_valid, test_size=0.2, random_state=3879)
 print("valid dataset", X_valid.shape, y_valid.shape)
 print("test dataset", X_test.shape, y_test.shape)
 
-
-# Pickle again
+# Pickle this dataset for future use
 os.chdir(r"/Users/priyankadwivedi/Desktop/tensor/P5/param_op")
 pickle_file = 'catdog59.pickle'
 
