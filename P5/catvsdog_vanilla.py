@@ -10,7 +10,7 @@ import numpy as np
 from six.moves import cPickle as pickle
 import scipy as sp
 
-# For future runs load from pickled dataset
+# Load pickled dataset
 #import os
 #os.chdir(r"/Users/priyankadwivedi/Desktop/tensor/P5/param_op")
 pickle_file = 'catdog59.pickle'
@@ -28,7 +28,7 @@ with open(pickle_file, 'rb') as f:
     print('Validation set', X_valid.shape, y_valid.shape)
     print('Test set', X_test.shape, y_test.shape)
     
-## New Steps added for Image PreProcessing and 
+## Import TFLearn modules 
 
 import tflearn
 from tflearn.data_utils import shuffle, to_categorical
@@ -39,11 +39,12 @@ from tflearn.data_preprocessing import ImagePreprocessing
 from tflearn.data_augmentation import ImageAugmentation
 import numpy as np
 
-
+# Convert Labels into two columns to predict cat or dog
 y_train = to_categorical(y_train, 2)
 y_valid = to_categorical(y_valid, 2)
 y_test = to_categorical(y_test, 2)
 
+# Resize dataset into a 4D array as the proper input format into tensor 
 image_size = 56
 num_channels = 1 # grayscale
 def reshape(dataset):
@@ -69,82 +70,55 @@ print('Validation set', valid_dataset.shape, valid_labels.shape)
 print('Test set', test_dataset.shape, test_labels.shape)
 
    
-# Make sure the data is normalized
+# Image preprocessing - Make sure the data is normalized
 img_prep = ImagePreprocessing()
 img_prep.add_featurewise_zero_center()
 img_prep.add_featurewise_stdnorm()  
 
-"""   
-img_prep = ImagePreprocessing()
-img_prep.add_samplewise_zero_center()
-img_prep.add_zca_whitening()
-"""
-
-# Create extra synthetic training data by flipping, rotating and blurring the
-# images on our data set.
-"""
-img_aug = ImageAugmentation()
-img_aug.add_random_crop((56,56),6)
-img_aug.add_random_flip_leftright()
-img_aug.add_random_rotation(max_angle=25.)
-img_aug.add_random_blur(sigma_max=3.)
-"""
-#Lets begin with out first NN
-# 2 conv - 1 max pool
-# 1 conv - 1 max pool
-# 2 fully connected
-# Output Layer 
-
-
-batch_size = 50
-num_channels = 1
+#Lets begin with out first Neural Network! 
+num_channels = 1 # Grayscale
 image_size = 56
 
-# Input is a 32x32 image with 3 color channels (red, green and blue)
+# Input is a 32x32 image with only 1 color channel - grayscale image 
 network = input_data(shape=[None, image_size, image_size, num_channels], dtype=tf.float32, 
                      data_preprocessing=img_prep)
 #                    data_augmentation=img_aug)
 
-# Step 1: Convolution
+# Step 1: Convolution Layer with patch size = 5, stride = 1, same padding an depth = 16.
+# Activation function - RELU
+# Added L2 regularization with weight decay of 0.001
 network = conv_2d(network, nb_filter=16, filter_size=5, strides =1, padding = 'same', activation='relu',regularizer = 'L2', weight_decay = 0.001)
 
-# Step2 : First Maxpool
+# Step2 : First Maxpool with kernel size = 2 and stride = 2
 network = max_pool_2d(network, kernel_size = 2)
 
-# Step 3: SecondConvolution
+# Step 3: Second Convolution with patch size = 5, stride = 1, same padding an depth = 32.
+# Activation function - RELU
+# Added L2 regularization with weight decay of 0.001
 network = conv_2d(network, nb_filter=32, filter_size=5, strides =1, padding = 'same', activation='relu', regularizer = 'L2', weight_decay = 0.001)
 
-# Step 4 : Second Maxpool
+# Step 4 : Second Maxpool with kernel size = 2 and stride = 2
 network = max_pool_2d(network, kernel_size = 2)
 
-#Step 5: Fully-connected 128 node neural network
+#Step 5: Fully-connected layer with 128 neurons, RELU activation and L2 regulization with weight decay = 0.001
 network = fully_connected(network, n_units = 128, activation='relu', regularizer = 'L2', weight_decay = 0.001)   
                     
-# Step 7: Dropout - throw away some data randomly during training to prevent over-fitting
+# Dropout - throw away some data randomly during training to prevent over-fitting
 network = dropout(network, 0.5)
 
-
-#Step 9: Output Layer for 2 channel output
+#Step 6: Output Layer for 2 channel output for cat or dog and Softmax activation
 network = fully_connected(network, n_units = 2, activation='softmax')                     
 
-"""
-# Tell tflearn how we want to train the network
-network = regression(network, optimizer='adam',
-                     loss='categorical_crossentropy',
-                     learning_rate=0.0009)
-
-# To implement SGD with learning rate decay
-"""
+# Optimization -  SGD with initial learning rate of 0.05 and learning rate decay after 1000 steps.
 from tflearn.optimizers import SGD
 sgd = SGD(learning_rate=0.05, lr_decay=0.96, decay_step=1000)
 regression = regression(network, optimizer=sgd,  loss='categorical_crossentropy')
-
 
 # Wrap the network in a model object
 model = tflearn.DNN(network, tensorboard_verbose=0, tensorboard_dir='/tmp/tflearn_logs/'
                     )
 
-# Train it! We'll do 100 training passes and monitor it as it goes.
+# Train it! We'll do 15 epcohes and monitor it as it goes. Batch size = 96
 model.fit(train_dataset, train_labels, n_epoch=15, shuffle=True, validation_set=(valid_dataset, valid_labels),
           show_metric=True, batch_size=96,  
           snapshot_epoch=True,
@@ -152,22 +126,15 @@ model.fit(train_dataset, train_labels, n_epoch=15, shuffle=True, validation_set=
 
 # Save model when training is complete to a file
 model.save("cd_vanilla.tfl")
-print("Network trained and saved as cd1.tfl!")
+print("Network trained and saved as cd_vanilla.tfl!")
 
-
+# Predict performance on test dataset
 test_pred = model.predict(test_dataset)
-#valid_pred = model.predict(valid_dataset)
-#train_pred = model.predict(train_dataset)
 
 act_test = y_test[:,1]
 pred_test = [x[1] for x in test_pred]
 
-#act_valid = y_valid[:,1]
-#pred_valid = [x[1] for x in valid_pred]
-
-#act_train = y_train[:,1]
-#pred_train = [x[1] for x in train_pred]
-
+# Defined Log Loss function
 def logloss(act, pred):
     epsilon = 1e-15
     pred = sp.maximum(epsilon, pred)
@@ -176,10 +143,8 @@ def logloss(act, pred):
     ll = ll * -1.0/len(act)
     return ll
 
+#Print Log loss on test dataset
 myloss_test = logloss(act_test,pred_test)
-#myloss_valid = logloss(act_valid,pred_valid)
-#myloss_train = logloss(act_train,pred_train)
 print("Logloss -Test", myloss_test)
-#print("Logloss -Valid", myloss_valid)
-#print("Logloss -Train", myloss_train)
+
 
