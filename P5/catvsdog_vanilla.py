@@ -118,7 +118,7 @@ regression = regression(network, optimizer=sgd,  loss='categorical_crossentropy'
 model = tflearn.DNN(network, tensorboard_verbose=0, tensorboard_dir='/tmp/tflearn_logs/'
                     )
 
-# Train it! We'll do 15 epcohes and monitor it as it goes. Batch size = 96
+# Train it! We'll do 15 epochs and monitor it as it goes. Batch size = 96
 model.fit(train_dataset, train_labels, n_epoch=15, shuffle=True, validation_set=(valid_dataset, valid_labels),
           show_metric=True, batch_size=96,  
           snapshot_epoch=True,
